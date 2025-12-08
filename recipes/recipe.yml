@@ -9,14 +9,14 @@ image-version: latest
 modules:
 
   ##########################################################
-  # FILES (NEW FORMAT — NO INLINE CONTENT)
+  # FILES (CORRECT NEW FORMAT)
   ##########################################################
   - type: files
     files:
-      - source: files/lactd.service
+      - source: lactd.service
         destination: /etc/systemd/system/lactd.service
 
-      - source: files/environment
+      - source: environment
         destination: /etc/environment
 
   ##########################################################
@@ -30,7 +30,6 @@ modules:
 
     install:
       packages:
-        # Developer tools
         - git
         - curl
         - gcc
@@ -41,16 +40,12 @@ modules:
         - cmake
         - ninja-build
         - micro
-
-        # Gaming stack
         - gamemode
         - mangohud
         - mangohud-core
         - vkBasalt
         - vulkan-tools
         - vulkan-validation-layers
-
-        # Wayland / Hyprland stack
         - hyprland
         - waybar
         - rofi-wayland
@@ -58,11 +53,7 @@ modules:
         - grim
         - slurp
         - swaylock
-
-        # LACT GPU controller
         - lact
-
-        # CUDA / AI stack
         - cuda
         - cuda-cudart
         - cuda-nvrtc
