@@ -22,7 +22,10 @@ modules:
       # build script that will compile Hyprland from source during the build
       - source: build-hyprland.sh
         destination: /usr/local/bin/build-hyprland.sh
-
+        # ensure script is executable at image build time
+        # (some BlueBuild variants accept an "mode" field; if yours doesn't,
+        # the script can `chmod +x` itself at the start)
+  
   ##########################################################
   # DNF — runtime + developer + build dependencies
   ##########################################################
@@ -102,13 +105,8 @@ modules:
   # SCRIPT / BUILD: compile & install Hyprland from source
   ##########################################################
   - type: script
-    scripts:
-      - name: build-hyprland
-        description: Build Hyprland from source
-        content: |
-          #!/bin/bash
-          set -euo pipefail
-          /usr/local/bin/build-hyprland.sh
+    commands:
+      - /bin/bash /usr/local/bin/build-hyprland.sh
 
   ##########################################################
   # (Optional) DNF cleanup: if you want to remove build-only packages,
