@@ -1,0 +1,10 @@
+[Unit]
+Description=LACT GPU Control
+After=graphical.target
+
+[Service]
+ExecStart=/usr/bin/lactd
+Restart=always
+
+[Install]
+WantedBy=graphical.target
