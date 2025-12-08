@@ -2,36 +2,25 @@
 # yaml-language-server: $schema=https://schema.blue-build.org/recipe-v1.json
 
 name: scentia-os
-description: "Scentia OS – Clean rebuild: Hyprland + CUDA + Gaming + Developer stack"
+description: "Scentia OS – Hyprland + LACT + Developer + Gaming + CUDA"
 base-image: ghcr.io/ublue-os/bazzite-nvidia
 image-version: latest
 
 modules:
 
   ##########################################################
-  # FILES MODULE — ONLY WHAT YOU NEED
+  # FILES (NEW FORMAT — NO INLINE CONTENT)
   ##########################################################
   - type: files
     files:
+      - source: files/lactd.service
+        destination: /etc/systemd/system/lactd.service
 
-  
-
-      # LACT systemd service
-      - path: /etc/systemd/system/lactd.service
-        content: |
-          [Unit]
-          Description=LACT GPU Control
-          After=graphical.target
-
-          [Service]
-          ExecStart=/usr/bin/lactd
-          Restart=always
-
-          [Install]
-          WantedBy=graphical.target
+      - source: files/environment
+        destination: /etc/environment
 
   ##########################################################
-  # DNF — DEV STACK, GAMING STACK, CUDA STACK, HYPRLAND
+  # DNF — DEV STACK, GAMING STACK, CUDA, HYPRLAND
   ##########################################################
   - type: dnf
     repos:
@@ -41,8 +30,7 @@ modules:
 
     install:
       packages:
-
-        # Developer Tools
+        # Developer tools
         - git
         - curl
         - gcc
@@ -54,7 +42,7 @@ modules:
         - ninja-build
         - micro
 
-        # Gaming Stack
+        # Gaming stack
         - gamemode
         - mangohud
         - mangohud-core
@@ -62,7 +50,7 @@ modules:
         - vulkan-tools
         - vulkan-validation-layers
 
-        # Wayland / Hyprland Stack
+        # Wayland / Hyprland stack
         - hyprland
         - waybar
         - rofi-wayland
@@ -71,10 +59,10 @@ modules:
         - slurp
         - swaylock
 
-        # LACT GPU Controller
+        # LACT GPU controller
         - lact
 
-        # CUDA / AI Stack
+        # CUDA / AI stack
         - cuda
         - cuda-cudart
         - cuda-nvrtc
@@ -90,7 +78,7 @@ modules:
         - firefox-langpacks
 
   ##########################################################
-  # FLATPAKS — KEEP CLEAN, JUST ESSENTIALS
+  # FLATPAKS
   ##########################################################
   - type: default-flatpaks
     configurations:
@@ -100,6 +88,6 @@ modules:
           - org.gnome.Loupe
 
   ##########################################################
-  # SIGNING (MANDATORY FOR MODERN BLUEBUILD)
+  # SIGNING
   ##########################################################
   - type: signing
