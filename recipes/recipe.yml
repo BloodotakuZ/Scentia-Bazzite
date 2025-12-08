@@ -1,11 +1,3 @@
----
-# yaml-language-server: $schema=https://schema.blue-build.org/recipe-v1.json
-
-name: scentia-os
-description: "Scentia OS – Hyprland (built from source) + LACT + Dev + Gaming + CUDA"
-base-image: ghcr.io/ublue-os/bazzite-nvidia
-image-version: latest
-
 modules:
 
   ##########################################################
@@ -22,22 +14,17 @@ modules:
       # build script that will compile Hyprland from source during the build
       - source: build-hyprland.sh
         destination: /usr/local/bin/build-hyprland.sh
-        # ensure script is executable at image build time
-        # (some BlueBuild variants accept an "mode" field; if yours doesn't,
-        # the script can `chmod +x` itself at the start)
   
   ##########################################################
   # DNF — runtime + developer + build dependencies
   ##########################################################
   - type: dnf
     repos:
-      # Keep LACT COPR if you still want native LACT; remove it if you vendor LACT too.
       copr:
         - xnorbr/lact
 
     install:
       packages:
-        # Developer / general tools (you asked to keep dev tools)
         - git
         - curl
         - gcc
@@ -52,8 +39,6 @@ modules:
         - python3
         - python3-pip
         - python3-mako
-
-        # Build dependencies commonly needed to compile Hyprland (Fedora names)
         - wlroots-devel
         - wayland-devel
         - wayland-protocols-devel
@@ -65,28 +50,20 @@ modules:
         - libdrm-devel
         - libwayland-egl-devel
         - libxkbcommon-x11-devel
-
-        # Gaming / Wayland / Hyprland runtime tools
-        - hyprland   # optional: will be overridden by local build/install (or remove this if you want only built-from-source)
+        - hyprland
         - waybar
         - rofi-wayland
         - hyprpaper
         - grim
         - slurp
         - swaylock
-
-        # Gaming stack, Vulkan, etc.
         - gamemode
         - mangohud
         - mangohud-core
         - vkBasalt
         - vulkan-tools
         - vulkan-validation-layers
-
-        # LACT GPU controller
         - lact
-
-        # CUDA / AI stack (you asked for)
         - cuda
         - cuda-cudart
         - cuda-nvrtc
@@ -101,36 +78,4 @@ modules:
         - firefox
         - firefox-langpacks
 
-  ##########################################################
-  # SCRIPT / BUILD: compile & install Hyprland from source
-  ##########################################################
- - type: script
-  path: /usr/local/bin/build-hyprland.sh
-
-
-  ##########################################################
-  # (Optional) DNF cleanup: if you want to remove build-only packages,
-  # add a dnf module here to remove them.  This example keeps dev
-  # tools since you asked for developer tooling to remain.
-  ##########################################################
-  # - type: dnf
-  #   remove:
-  #     packages:
-  #       - meson
-  #       - ninja-build
-  #       - python3-mako
-
-  ##########################################################
-  # FLATPAKS
-  ##########################################################
-  - type: default-flatpaks
-    configurations:
-      - scope: system
-        install:
-          - org.mozilla.firefox
-          - org.gnome.Loupe
-
-  ##########################################################
-  # SIGNING
-  ##########################################################
-  - type: signing
+  #####################################
