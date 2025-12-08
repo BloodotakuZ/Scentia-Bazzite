@@ -2,7 +2,7 @@
 # yaml-language-server: $schema=https://schema.blue-build.org/recipe-v1.json
 
 name: scentia-os
-description: Scentia OS – Optimized NVIDIA/Bazzite environment with Hyprland tuning and performance enhancements.
+description: Scentia OS – Optimized Bazzite/NVIDIA environment with Hyprland + Gaming enhancements
 
 base-image: ghcr.io/ublue-os/bazzite-nvidia
 image-version: latest
@@ -10,14 +10,10 @@ image-version: latest
 modules:
 
   ##########################################################
-  # SYSTEM FILES + NVIDIA + HYPRLAND + LACT
+  # FILES MODULE (NO SYSTEM COPY)
   ##########################################################
   - type: files
     files:
-
-      # Copy system folder
-      - source: system
-        destination: /
 
       # NVIDIA Persistence Daemon
       - content: |
@@ -48,7 +44,7 @@ modules:
           WantedBy=graphical.target
         path: /etc/systemd/system/nvidia-powerd.service
 
-      # NVIDIA / Hyprland Environment
+      # NVIDIA/Hyprland Environment Variables
       - content: |
           LIBVA_DRIVER_NAME=nvidia
           __GLX_VENDOR_LIBRARY_NAME=nvidia
@@ -58,7 +54,7 @@ modules:
           __GL_MaxFramesAllowed=1
         path: /etc/environment
 
-      # NVIDIA Coolbits configuration
+      # NVIDIA Coolbits Config
       - content: |
           Section "Device"
               Identifier "Nvidia Card"
@@ -82,7 +78,7 @@ modules:
           WantedBy=graphical.target
         path: /etc/systemd/system/lactd.service
 
-      # LACT Fan Curve
+      # LACT fan curve config
       - content: |
           {
             "version": 1,
@@ -101,7 +97,7 @@ modules:
           }
         path: /etc/lact/config.json
 
-      # LACT Profiles
+      # LACT OC profiles
       - content: |
           [profile.default]
           core_offset = 0
@@ -119,7 +115,7 @@ modules:
           power_limit = "max"
         path: /etc/lact/profiles.toml
 
-      # Desktop Entry for LACT GUI
+      # LACT Desktop Entry
       - content: |
           [Desktop Entry]
           Type=Application
@@ -131,18 +127,19 @@ modules:
         path: /usr/share/applications/lact.desktop
 
   ##########################################################
-  # DNF MODULE (Packages, Heroic Native, LACT Native)
+  # DNF MODULE (Native Packages)
   ##########################################################
   - type: dnf
     repos:
       copr:
         - atim/starship
         - jakoolits/Hyprland
-        - cheat/heroic-games-launcher
-        - xnorbr/lact
+        - cheat/heroic-games-launcher   # Native Heroic
+        - xnorbr/lact                   # Native LACT
 
     install:
       packages:
+
         # Essentials
         - micro
         - starship
@@ -152,7 +149,7 @@ modules:
         - tar
         - ffmpeg
 
-        # Development
+        # Dev tools
         - gcc
         - gcc-c++
         - clang
@@ -161,7 +158,7 @@ modules:
         - ninja-build
         - make
 
-        # Python
+        # Python stack
         - python3
         - python3-pip
         - python3-virtualenv
@@ -169,12 +166,12 @@ modules:
         - python3-setuptools
         - python3-wheel
 
-        # Wine gaming stack
+        # Wine for gaming
         - wine
         - wine-gecko
         - wine-mono
 
-        # Hyprland + utilities
+        # Hyprland + Wayland tools
         - hyprland
         - xdg-desktop-portal-hyprland
         - hyprpaper
@@ -188,12 +185,22 @@ modules:
         - fuse3
         - fuse3-libs
 
-        # Mesa / OpenGL
+        # Vulkan/OpenGL
         - mesa-libEGL
         - mesa-libGL
         - mesa-libGLU
+        - vulkan-tools
+        - vulkan-validation-layers
+        - vulkan-loader
 
-        # CUDA + AI Stack
+        # Gaming enhancements
+        - gamemode
+        - gamemode-devel
+        - mangohud
+        - mangohud-core
+        - vkBasalt
+
+        # AI/CUDA stack
         - cuda
         - cuda-cudart
         - cuda-nvrtc
@@ -203,22 +210,10 @@ modules:
         - cudnn8
         - cudnn8-devel
 
-        # Gaming / Overlays
-        - gamemode
-        - gamemode-devel
-        - mango
-        - mangohud
-        - mangohud-core
-        - vkBasalt
-        - vulkan-tools
-        - vulkan-headers
-        - vulkan-loader
-        - vulkan-validation-layers
-
-        # Native Heroic
+        # Native Heroic Games Launcher
         - heroic-games-launcher-bin
 
-        # Native LACT
+        # Native LACT GPU Controller
         - lact
 
     remove:
