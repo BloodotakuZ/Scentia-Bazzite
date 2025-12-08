@@ -2,70 +2,31 @@
 # yaml-language-server: $schema=https://schema.blue-build.org/recipe-v1.json
 
 name: scentia-os
-description: Scentia OS – Optimized Bazzite/NVIDIA environment with Hyprland + Gaming enhancements
-
+description: "Scentia OS – Clean rebuild: Hyprland + CUDA + Gaming + Developer stack"
 base-image: ghcr.io/ublue-os/bazzite-nvidia
 image-version: latest
 
 modules:
 
   ##########################################################
-  # FILES MODULE (NO SYSTEM COPY)
+  # FILES MODULE — ONLY WHAT YOU NEED
   ##########################################################
   - type: files
     files:
 
-      # NVIDIA Persistence Daemon
-      - content: |
-          [Unit]
-          Description=NVIDIA Persistence Daemon
-          After=multi-user.target
-
-          [Service]
-          Type=forking
-          ExecStart=/usr/bin/nvidia-persistenced --verbose
-          ExecStop=/usr/bin/killall nvidia-persistenced
-          Restart=always
-
-          [Install]
-          WantedBy=multi-user.target
-        path: /etc/systemd/system/nvidia-persistenced.service
-
-      # NVIDIA Power Daemon
-      - content: |
-          [Unit]
-          Description=NVIDIA Power Management
-
-          [Service]
-          ExecStart=/usr/bin/nvidia-powerd
-          Restart=always
-
-          [Install]
-          WantedBy=graphical.target
-        path: /etc/systemd/system/nvidia-powerd.service
-
-      # NVIDIA/Hyprland Environment Variables
-      - content: |
+      # NVIDIA/Hyprland environment overrides
+      - path: /etc/environment
+        content: |
           LIBVA_DRIVER_NAME=nvidia
           __GLX_VENDOR_LIBRARY_NAME=nvidia
           GBM_BACKEND=nvidia-drm
           __GL_GSYNC_ALLOWED=1
           __GL_VRR_ALLOWED=1
           __GL_MaxFramesAllowed=1
-        path: /etc/environment
 
-      # NVIDIA Coolbits Config
-      - content: |
-          Section "Device"
-              Identifier "Nvidia Card"
-              Driver "nvidia"
-              Option "Coolbits" "28"
-              Option "AllowEmptyInitialConfiguration"
-          EndSection
-        path: /etc/X11/xorg.conf.d/90-nvidia-coolbits.conf
-
-      # LACT service
-      - content: |
+      # LACT systemd service
+      - path: /etc/systemd/system/lactd.service
+        content: |
           [Unit]
           Description=LACT GPU Control
           After=graphical.target
@@ -76,131 +37,52 @@ modules:
 
           [Install]
           WantedBy=graphical.target
-        path: /etc/systemd/system/lactd.service
-
-      # LACT fan curve config
-      - content: |
-          {
-            "version": 1,
-            "fan_control": {
-              "enabled": true,
-              "default_mode": "curve",
-              "curve": [
-                {"temp": 30, "speed": 25},
-                {"temp": 40, "speed": 35},
-                {"temp": 50, "speed": 45},
-                {"temp": 60, "speed": 60},
-                {"temp": 70, "speed": 75},
-                {"temp": 80, "speed": 90}
-              ]
-            }
-          }
-        path: /etc/lact/config.json
-
-      # LACT OC profiles
-      - content: |
-          [profile.default]
-          core_offset = 0
-          mem_offset = 0
-          power_limit = "default"
-
-          [profile.oc_safe]
-          core_offset = 100
-          mem_offset = 300
-          power_limit = "max"
-
-          [profile.oc_aggressive]
-          core_offset = 160
-          mem_offset = 600
-          power_limit = "max"
-        path: /etc/lact/profiles.toml
-
-      # LACT Desktop Entry
-      - content: |
-          [Desktop Entry]
-          Type=Application
-          Name=LACT GPU Control
-          Exec=lact-gui
-          Icon=lact
-          Categories=System;Settings;
-          Terminal=false
-        path: /usr/share/applications/lact.desktop
 
   ##########################################################
-  # DNF MODULE (Native Packages)
+  # DNF — DEV STACK, GAMING STACK, CUDA STACK, HYPRLAND
   ##########################################################
   - type: dnf
     repos:
       copr:
-        - atim/starship
         - jakoolits/Hyprland
-        - cheat/heroic-games-launcher   # Native Heroic
-        - xnorbr/lact                   # Native LACT
+        - xnorbr/lact
 
     install:
       packages:
 
-        # Essentials
-        - micro
-        - starship
+        # Developer Tools
         - git
         - curl
-        - aria2
-        - tar
-        - ffmpeg
-
-        # Dev tools
         - gcc
         - gcc-c++
         - clang
         - llvm
+        - make
         - cmake
         - ninja-build
-        - make
+        - micro
 
-        # Python stack
-        - python3
-        - python3-pip
-        - python3-virtualenv
-        - python3-devel
-        - python3-setuptools
-        - python3-wheel
+        # Gaming Stack
+        - gamemode
+        - mangohud
+        - mangohud-core
+        - vkBasalt
+        - vulkan-tools
+        - vulkan-validation-layers
 
-        # Wine for gaming
-        - wine
-        - wine-gecko
-        - wine-mono
-
-        # Hyprland + Wayland tools
+        # Wayland / Hyprland Stack
         - hyprland
-        - xdg-desktop-portal-hyprland
-        - hyprpaper
         - waybar
         - rofi-wayland
+        - hyprpaper
         - grim
         - slurp
         - swaylock
 
-        # FUSE
-        - fuse3
-        - fuse3-libs
+        # LACT GPU Controller
+        - lact
 
-        # Vulkan/OpenGL
-        - mesa-libEGL
-        - mesa-libGL
-        - mesa-libGLU
-        - vulkan-tools
-        - vulkan-validation-layers
-        - vulkan-loader
-
-        # Gaming enhancements
-        - gamemode
-        - gamemode-devel
-        - mangohud
-        - mangohud-core
-        - vkBasalt
-
-        # AI/CUDA stack
+        # CUDA / AI Stack
         - cuda
         - cuda-cudart
         - cuda-nvrtc
@@ -210,30 +92,22 @@ modules:
         - cudnn8
         - cudnn8-devel
 
-        # Native Heroic Games Launcher
-        - heroic-games-launcher-bin
-
-        # Native LACT GPU Controller
-        - lact
-
     remove:
       packages:
         - firefox
         - firefox-langpacks
 
   ##########################################################
-  # FLATPAKS
+  # FLATPAKS — KEEP CLEAN, JUST ESSENTIALS
   ##########################################################
   - type: default-flatpaks
     configurations:
-      - notify: true
-        scope: system
+      - scope: system
         install:
           - org.mozilla.firefox
           - org.gnome.Loupe
-      - scope: user
 
   ##########################################################
-  # SIGNING
+  # SIGNING (MANDATORY FOR MODERN BLUEBUILD)
   ##########################################################
   - type: signing
