@@ -1,32 +1,171 @@
 ---
 # yaml-language-server: $schema=https://schema.blue-build.org/recipe-v1.json
-# image will be published to ghcr.io/<user>/<name>
 name: Scentia-OS
-# description will be included in the image's metadata
-description: This is my personal OS image.
+description: Fully optimized NVIDIA-focused Scentia-OS image with AI tools, gaming enhancements, and system performance tuning.
 
-# the base image to build on top of (FROM) and the version tag to use
 base-image: ghcr.io/ublue-os/bazzite-nvidia
-image-version: latest # latest is also supported if you want new updates ASAP
+image-version: latest
 
-# module configuration, executed in order
-# you can include multiple instances of the same module
 modules:
+
+  ##########################################################
+  # SYSTEM FILES + NVIDIA SERVICES + HYPRLAND OPTIMIZATIONS
+  ##########################################################
   - type: files
     files:
       - source: system
-        destination: / # copies files/system/* (* means everything inside it) into your image's root folder /
+        destination: /
 
+      ########################################################
+      # NVIDIA PERSISTENCE SERVICE
+      ########################################################
+      - content: |
+          [Unit]
+          Description=NVIDIA Persistence Daemon
+          After=multi-user.target
+
+          [Service]
+          Type=forking
+          ExecStart=/usr/bin/nvidia-persistenced --verbose
+          ExecStop=/usr/bin/killall nvidia-persistenced
+          Restart=always
+
+          [Install]
+          WantedBy=multi-user.target
+        path: /etc/systemd/system/nvidia-persistenced.service
+
+      ########################################################
+      # NVIDIA POWER MANAGEMENT (nvidia-powerd)
+      ########################################################
+      - content: |
+          [Unit]
+          Description=NVIDIA Power Management
+
+          [Service]
+          ExecStart=/usr/bin/nvidia-powerd
+          Restart=always
+
+          [Install]
+          WantedBy=multi-user.target
+        path: /etc/systemd/system/nvidia-powerd.service
+
+      ########################################################
+      # HYPRLAND + WAYLAND NVIDIA OPTIMIZATION
+      ########################################################
+      - content: |
+          env = LIBVA_DRIVER_NAME,nvidia
+          env = __GLX_VENDOR_LIBRARY_NAME,nvidia
+          env = GBM_BACKEND,nvidia-drm
+          env = __GL_GSYNC_ALLOWED,1
+          env = __GL_VRR_ALLOWED,1
+          env = __GL_MaxFramesAllowed,1
+        path: /etc/environment
+
+      ########################################################
+      # NVIDIA COOLBITS (fan control, OC)
+      ########################################################
+      - content: |
+          Section "Device"
+              Identifier "Nvidia Card"
+              Driver "nvidia"
+              Option "Coolbits" "28"
+              Option "AllowEmptyInitialConfiguration"
+          EndSection
+        path: /etc/X11/xorg.conf.d/90-nvidia-coolbits.conf
+
+      ########################################################
+      # LACT GPU CONTROL DAEMON
+      ########################################################
+      - content: |
+          [Unit]
+          Description=LACT NVIDIA Control Daemon
+          After=graphical.target
+
+          [Service]
+          ExecStart=/usr/bin/lactd
+          Restart=always
+
+          [Install]
+          WantedBy=graphical.target
+        path: /etc/systemd/system/lactd.service
+
+      ########################################################
+      # LACT SAFE DEFAULT FAN CURVE
+      ########################################################
+      - content: |
+          {
+            "version": 1,
+            "fan_control": {
+              "enabled": true,
+              "default_mode": "curve",
+              "curve": [
+                {"temp": 30, "speed": 25},
+                {"temp": 40, "speed": 35},
+                {"temp": 50, "speed": 45},
+                {"temp": 60, "speed": 60},
+                {"temp": 70, "speed": 75},
+                {"temp": 80, "speed": 90}
+              ]
+            }
+          }
+        path: /etc/lact/config.json
+
+      ########################################################
+      # LACT OC PROFILES (SAFE + AGGRESSIVE)
+      ########################################################
+      - content: |
+          [profile.default]
+          core_offset = 0
+          mem_offset = 0
+          power_limit = "default"
+
+          [profile.oc_safe]
+          core_offset = 100
+          mem_offset = 300
+          power_limit = "max"
+
+          [profile.oc_aggressive]
+          core_offset = 160
+          mem_offset = 600
+          power_limit = "max"
+        path: /etc/lact/profiles.toml
+
+      ########################################################
+      # LACT DESKTOP ENTRY
+      ########################################################
+      - content: |
+          [Desktop Entry]
+          Type=Application
+          Name=LACT GPU Control
+          Exec=lact-gui
+          Icon=lact
+          Categories=System;Settings;
+          Terminal=false
+        path: /usr/share/applications/lact.desktop
+
+  ##########################################################
+  # DNF INSTALLATION (SYSTEM, GPU, AI, GAMING, HEROIC)
+  ##########################################################
   - type: dnf
     repos:
       copr:
         - atim/starship
         - jakoolits/Hyprland
+        - cheat/heroic-games-launcher
+        - xnorbr/lact   # LACT repo
+
     install:
       packages:
+        # System utilities
         - micro
         - starship
-        - cuda
+        - git
+        - curl
+        - aria2
+        - tar
+        - ffmpeg
+
+        # Dev tools for Fooocus / ComfyUI
         - gcc
         - gcc-c++
         - clang
@@ -34,18 +173,22 @@ modules:
         - cmake
         - ninja-build
         - make
-        - git
-        - curl
-        - aria2
-        - tar
-        - ffmpeg
+
+        # Python & wheel building
         - python3
         - python3-pip
         - python3-virtualenv
         - python3-devel
+        - python3-wheel
+        - python3-setuptools
+        - python3-build
+
+        # Wine support
         - wine
         - wine-mono
         - wine-gecko
+
+        # Wayland / Hyprland
         - hyprland
         - xdg-desktop-portal-hyprland
         - hyprpaper
@@ -54,30 +197,66 @@ modules:
         - grim
         - slurp
         - swaylock
-        - fuse
-        - fuse-libs
+
+        # Modern FUSE
+        - fuse3
+        - fuse3-libs
+
+        # Mesa
         - mesa-libEGL
         - mesa-libGL
         - mesa-libGLU
         - libglvnd
+
+        # AI Compute Stack (CUDA/cuDNN/cuBLAS/etc.)
+        - cuda
+        - cuda-cudart
+        - cuda-nvml-devel
+        - cuda-nvrtc
+        - cuda-nvtx
+        - libcublas
+        - libcublas-devel
+        - cudnn8
+        - cudnn8-devel
+
+        # Gaming optimization stack
+        - gamemode
+        - gamemode-devel
+        - mango
+        - mangohud
+        - mangohud-core
+        - vkBasalt
+        - vulkan-loader
+        - vulkan-tools
+        - vulkan-headers
+        - vulkan-validation-layers
+
+        # Native Heroic Games Launcher
+        - heroic-games-launcher-bin
+
+        # LACT GPU Manager
+        - lact
+
     remove:
       packages:
-        # example: removing firefox (in favor of the flatpak)
-        # "firefox" is the main package, "firefox-langpacks" is a dependency
         - firefox
-        - firefox-langpacks # also remove firefox dependency (not required for all packages, this is a special case)
+        - firefox-langpacks
 
+  ##########################################################
+  # FLATPAKS
+  ##########################################################
   - type: default-flatpaks
     configurations:
-      - notify: true # Send notification after install/uninstall is finished (true/false)
+      - notify: true
         scope: system
-        # If no repo information is specified, Flathub will be used by default
-        install: # system flatpaks we want all users to have and not remove
+        install:
           - org.mozilla.firefox
           - org.gnome.Loupe
-          - com.heroicgameslauncher.hgl
-      - scope: user # Also add Flathub user repo, but no user packages
+      - scope: user
 
+  ##########################################################
+  # AI WORKLOAD INSTALLERS
+  ##########################################################
   - type: shell
     commands:
       - name: Install Fooocus
@@ -90,9 +269,12 @@ modules:
             git -C /opt/fooocus fetch --depth=1 origin
             git -C /opt/fooocus reset --hard origin/master
           fi
-          python3 -m venv /opt/fooocus/.venv
-          /opt/fooocus/.venv/bin/pip install --upgrade pip
-          /opt/fooocus/.venv/bin/pip install -r /opt/fooocus/requirements_versions.txt
+          if [ ! -d /opt/fooocus/.venv ]; then
+            python3 -m venv /opt/fooocus/.venv
+          fi
+          /opt/fooocus/.venv/bin/python -m pip install --upgrade pip setuptools wheel
+          /opt/fooocus/.venv/bin/python -m pip install -r /opt/fooocus/requirements_versions.txt
+
       - name: Install ComfyUI
         command: |
           set -euo pipefail
@@ -103,14 +285,24 @@ modules:
             git -C /opt/comfyui fetch --depth=1 origin
             git -C /opt/comfyui reset --hard origin/master
           fi
-          python3 -m venv /opt/comfyui/.venv
-          /opt/comfyui/.venv/bin/pip install --upgrade pip
-          /opt/comfyui/.venv/bin/pip install -r /opt/comfyui/requirements.txt
+          if [ ! -d /opt/comfyui/.venv ]; then
+            python3 -m venv /opt/comfyui/.venv
+          fi
+          /opt/comfyui/.venv/bin/python -m pip install --upgrade pip setuptools wheel
+          /opt/comfyui/.venv/bin/python -m pip install -r /opt/comfyui/requirements.txt
+
       - name: Install LM Studio
         command: |
           set -euo pipefail
           install -d /opt/lmstudio
-          curl -L "https://releases.lmstudio.ai/linux/x64/latest" -o /opt/lmstudio/LMStudio.AppImage
+          curl -fL "https://releases.lmstudio.ai/linux/x64/latest" -o /opt/lmstudio/LMStudio.AppImage
+          if [ ! -s /opt/lmstudio/LMStudio.AppImage ]; then
+            echo "LM Studio download failed" >&2
+            exit 1
+          fi
           chmod +x /opt/lmstudio/LMStudio.AppImage
 
-  - type: signing # this sets up the proper policy & signing files for signed images to work fully
+  ##########################################################
+  # SIGNING
+  ##########################################################
+  - type: signing
