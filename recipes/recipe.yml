@@ -99,10 +99,9 @@ modules:
         - firefox-langpacks
 
   ##########################################################
-  # RUN / SCRIPT module — compile & install Hyprland from source
-  # (executes after dnf/files)
+  # SCRIPT / BUILD: compile & install Hyprland from source
   ##########################################################
-    - type: script
+  - type: script
     scripts:
       - name: build-hyprland
         description: Build Hyprland from source
@@ -110,7 +109,6 @@ modules:
           #!/bin/bash
           set -euo pipefail
           /usr/local/bin/build-hyprland.sh
-
 
   ##########################################################
   # (Optional) DNF cleanup: if you want to remove build-only packages,
