@@ -1,7 +1,8 @@
 ---
 # yaml-language-server: $schema=https://schema.blue-build.org/recipe-v1.json
+
 name: scentia-os
-description: Scentia OS – Optimized NVIDIA/Bazzite environment with Hyprland tuning and performance enhancements
+description: Scentia OS – Optimized NVIDIA/Bazzite environment with Hyprland tuning and performance enhancements.
 
 base-image: ghcr.io/ublue-os/bazzite-nvidia
 image-version: latest
@@ -9,11 +10,12 @@ image-version: latest
 modules:
 
   ##########################################################
-  # SYSTEM FILES + NVIDIA + HYPRLAND ENV
+  # SYSTEM FILES + NVIDIA + HYPRLAND + LACT
   ##########################################################
   - type: files
     files:
-      # System folder copy
+
+      # Copy system folder
       - source: system
         destination: /
 
@@ -33,7 +35,7 @@ modules:
           WantedBy=multi-user.target
         path: /etc/systemd/system/nvidia-persistenced.service
 
-      # NVIDIA Power Service
+      # NVIDIA Power Daemon
       - content: |
           [Unit]
           Description=NVIDIA Power Management
@@ -46,7 +48,7 @@ modules:
           WantedBy=graphical.target
         path: /etc/systemd/system/nvidia-powerd.service
 
-      # Hyprland / NVIDIA Environment Variables
+      # NVIDIA / Hyprland Environment
       - content: |
           LIBVA_DRIVER_NAME=nvidia
           __GLX_VENDOR_LIBRARY_NAME=nvidia
@@ -56,7 +58,7 @@ modules:
           __GL_MaxFramesAllowed=1
         path: /etc/environment
 
-      # NVIDIA Coolbits (Overclock + Fan Control)
+      # NVIDIA Coolbits configuration
       - content: |
           Section "Device"
               Identifier "Nvidia Card"
@@ -66,7 +68,7 @@ modules:
           EndSection
         path: /etc/X11/xorg.conf.d/90-nvidia-coolbits.conf
 
-      # LACT Daemon
+      # LACT service
       - content: |
           [Unit]
           Description=LACT GPU Control
@@ -99,7 +101,7 @@ modules:
           }
         path: /etc/lact/config.json
 
-      # LACT Overclock Profiles
+      # LACT Profiles
       - content: |
           [profile.default]
           core_offset = 0
@@ -117,7 +119,7 @@ modules:
           power_limit = "max"
         path: /etc/lact/profiles.toml
 
-      # Desktop Entry Launcher
+      # Desktop Entry for LACT GUI
       - content: |
           [Desktop Entry]
           Type=Application
@@ -129,7 +131,7 @@ modules:
         path: /usr/share/applications/lact.desktop
 
   ##########################################################
-  # DNF PACKAGES (Native Heroic, LACT, Dev Tools, NVIDIA)
+  # DNF MODULE (Packages, Heroic Native, LACT Native)
   ##########################################################
   - type: dnf
     repos:
@@ -167,12 +169,12 @@ modules:
         - python3-setuptools
         - python3-wheel
 
-        # Wine Gaming Stack
+        # Wine gaming stack
         - wine
         - wine-gecko
         - wine-mono
 
-        # Hyprland
+        # Hyprland + utilities
         - hyprland
         - xdg-desktop-portal-hyprland
         - hyprpaper
@@ -182,14 +184,16 @@ modules:
         - slurp
         - swaylock
 
-        # FUSE / Mesa
+        # FUSE
         - fuse3
         - fuse3-libs
+
+        # Mesa / OpenGL
         - mesa-libEGL
         - mesa-libGL
         - mesa-libGLU
 
-        # CUDA + NVIDIA compute stack
+        # CUDA + AI Stack
         - cuda
         - cuda-cudart
         - cuda-nvrtc
@@ -199,18 +203,19 @@ modules:
         - cudnn8
         - cudnn8-devel
 
-        # Gaming / Vulkan tools
+        # Gaming / Overlays
         - gamemode
         - gamemode-devel
-        - mangohud
         - mango
+        - mangohud
+        - mangohud-core
         - vkBasalt
         - vulkan-tools
-        - vulkan-loader
         - vulkan-headers
+        - vulkan-loader
         - vulkan-validation-layers
 
-        # Native Heroic build
+        # Native Heroic
         - heroic-games-launcher-bin
 
         # Native LACT
@@ -222,7 +227,7 @@ modules:
         - firefox-langpacks
 
   ##########################################################
-  # DEFAULT FLATPAKS
+  # FLATPAKS
   ##########################################################
   - type: default-flatpaks
     configurations:
@@ -234,6 +239,6 @@ modules:
       - scope: user
 
   ##########################################################
-  # SIGNING MODULE
+  # SIGNING
   ##########################################################
   - type: signing
