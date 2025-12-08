@@ -104,9 +104,9 @@ modules:
   ##########################################################
   # SCRIPT / BUILD: compile & install Hyprland from source
   ##########################################################
-  - type: script
-    commands:
-      - /bin/bash /usr/local/bin/build-hyprland.sh
+ - type: script
+  path: /usr/local/bin/build-hyprland.sh
+
 
   ##########################################################
   # (Optional) DNF cleanup: if you want to remove build-only packages,
