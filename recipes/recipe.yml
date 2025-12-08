@@ -1,7 +1,7 @@
 ---
 # yaml-language-server: $schema=https://schema.blue-build.org/recipe-v1.json
 name: Scentia-OS
-description: Fully optimized NVIDIA-focused Scentia-OS image with AI tools, gaming enhancements, and system performance tuning.
+description: Fully optimized NVIDIA-focused Scentia-OS image with AI tools, gaming enhancements, and system tuning.
 
 base-image: ghcr.io/ublue-os/bazzite-nvidia
 image-version: latest
@@ -9,16 +9,14 @@ image-version: latest
 modules:
 
   ##########################################################
-  # SYSTEM FILES + NVIDIA SERVICES + HYPRLAND OPTIMIZATIONS
+  # SYSTEM FILES + NVIDIA + HYPRLAND OPTIMIZATIONS
   ##########################################################
   - type: files
     files:
       - source: system
         destination: /
 
-      ########################################################
-      # NVIDIA PERSISTENCE SERVICE
-      ########################################################
+      # NVIDIA Persistence Daemon
       - content: |
           [Unit]
           Description=NVIDIA Persistence Daemon
@@ -34,9 +32,7 @@ modules:
           WantedBy=multi-user.target
         path: /etc/systemd/system/nvidia-persistenced.service
 
-      ########################################################
-      # NVIDIA POWER MANAGEMENT (nvidia-powerd)
-      ########################################################
+      # NVIDIA Powerd
       - content: |
           [Unit]
           Description=NVIDIA Power Management
@@ -46,12 +42,10 @@ modules:
           Restart=always
 
           [Install]
-          WantedBy=multi-user.target
+          WantedBy=graphical.target
         path: /etc/systemd/system/nvidia-powerd.service
 
-      ########################################################
-      # HYPRLAND + WAYLAND NVIDIA OPTIMIZATION
-      ########################################################
+      # Hyprland + NVIDIA Environment
       - content: |
           env = LIBVA_DRIVER_NAME,nvidia
           env = __GLX_VENDOR_LIBRARY_NAME,nvidia
@@ -61,9 +55,7 @@ modules:
           env = __GL_MaxFramesAllowed,1
         path: /etc/environment
 
-      ########################################################
-      # NVIDIA COOLBITS (fan control, OC)
-      ########################################################
+      # Coolbits for fan & OC
       - content: |
           Section "Device"
               Identifier "Nvidia Card"
@@ -73,12 +65,10 @@ modules:
           EndSection
         path: /etc/X11/xorg.conf.d/90-nvidia-coolbits.conf
 
-      ########################################################
-      # LACT GPU CONTROL DAEMON
-      ########################################################
+      # LACT Daemon
       - content: |
           [Unit]
-          Description=LACT NVIDIA Control Daemon
+          Description=LACT GPU Control
           After=graphical.target
 
           [Service]
@@ -89,9 +79,7 @@ modules:
           WantedBy=graphical.target
         path: /etc/systemd/system/lactd.service
 
-      ########################################################
-      # LACT SAFE DEFAULT FAN CURVE
-      ########################################################
+      # LACT Fan Curve
       - content: |
           {
             "version": 1,
@@ -110,9 +98,7 @@ modules:
           }
         path: /etc/lact/config.json
 
-      ########################################################
-      # LACT OC PROFILES (SAFE + AGGRESSIVE)
-      ########################################################
+      # LACT OC Profiles
       - content: |
           [profile.default]
           core_offset = 0
@@ -130,9 +116,7 @@ modules:
           power_limit = "max"
         path: /etc/lact/profiles.toml
 
-      ########################################################
-      # LACT DESKTOP ENTRY
-      ########################################################
+      # LACT Desktop Entry
       - content: |
           [Desktop Entry]
           Type=Application
@@ -144,7 +128,7 @@ modules:
         path: /usr/share/applications/lact.desktop
 
   ##########################################################
-  # DNF INSTALLATION (SYSTEM, GPU, AI, GAMING, HEROIC)
+  # DNF — SYSTEM, GPU, AI, GAMING, HEROIC, LACT
   ##########################################################
   - type: dnf
     repos:
@@ -152,11 +136,10 @@ modules:
         - atim/starship
         - jakoolits/Hyprland
         - cheat/heroic-games-launcher
-        - xnorbr/lact   # LACT repo
+        - xnorbr/lact
 
     install:
       packages:
-        # System utilities
         - micro
         - starship
         - git
@@ -165,7 +148,7 @@ modules:
         - tar
         - ffmpeg
 
-        # Dev tools for Fooocus / ComfyUI
+        # dev tools
         - gcc
         - gcc-c++
         - clang
@@ -174,7 +157,7 @@ modules:
         - ninja-build
         - make
 
-        # Python & wheel building
+        # python build stack
         - python3
         - python3-pip
         - python3-virtualenv
@@ -183,12 +166,12 @@ modules:
         - python3-setuptools
         - python3-build
 
-        # Wine support
+        # Wine stack
         - wine
         - wine-mono
         - wine-gecko
 
-        # Wayland / Hyprland
+        # hyprland stack
         - hyprland
         - xdg-desktop-portal-hyprland
         - hyprpaper
@@ -198,17 +181,17 @@ modules:
         - slurp
         - swaylock
 
-        # Modern FUSE
+        # modern fuse
         - fuse3
         - fuse3-libs
 
-        # Mesa
+        # mesa
         - mesa-libEGL
         - mesa-libGL
         - mesa-libGLU
         - libglvnd
 
-        # AI Compute Stack (CUDA/cuDNN/cuBLAS/etc.)
+        # CUDA + AI stack
         - cuda
         - cuda-cudart
         - cuda-nvml-devel
@@ -219,7 +202,7 @@ modules:
         - cudnn8
         - cudnn8-devel
 
-        # Gaming optimization stack
+        # gaming optimizations
         - gamemode
         - gamemode-devel
         - mango
@@ -231,10 +214,10 @@ modules:
         - vulkan-headers
         - vulkan-validation-layers
 
-        # Native Heroic Games Launcher
+        # Heroic native
         - heroic-games-launcher-bin
 
-        # LACT GPU Manager
+        # LACT native
         - lact
 
     remove:
@@ -255,12 +238,12 @@ modules:
       - scope: user
 
   ##########################################################
-  # AI WORKLOAD INSTALLERS
+  # SCRIPT MODULES — AI TOOL INSTALLERS
   ##########################################################
-  - type: shell
+  - type: script
     commands:
       - name: Install Fooocus
-        command: |
+        run: |
           set -euo pipefail
           install -d /opt/fooocus
           if [ ! -d /opt/fooocus/.git ]; then
@@ -276,7 +259,7 @@ modules:
           /opt/fooocus/.venv/bin/python -m pip install -r /opt/fooocus/requirements_versions.txt
 
       - name: Install ComfyUI
-        command: |
+        run: |
           set -euo pipefail
           install -d /opt/comfyui
           if [ ! -d /opt/comfyui/.git ]; then
@@ -292,7 +275,7 @@ modules:
           /opt/comfyui/.venv/bin/python -m pip install -r /opt/comfyui/requirements.txt
 
       - name: Install LM Studio
-        command: |
+        run: |
           set -euo pipefail
           install -d /opt/lmstudio
           curl -fL "https://releases.lmstudio.ai/linux/x64/latest" -o /opt/lmstudio/LMStudio.AppImage
@@ -303,6 +286,6 @@ modules:
           chmod +x /opt/lmstudio/LMStudio.AppImage
 
   ##########################################################
-  # SIGNING
+  # SIGNING MODULE
   ##########################################################
   - type: signing
