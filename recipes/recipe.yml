@@ -71,9 +71,6 @@ modules:
       - cuda-cudart-devel-12-4
       - libcudnn8
       - libcudnn8-devel
-    remove:
-      - firefox
-      - firefox-langpacks
 
   # Build Hyprland from source after dependencies are present
   - type: script
