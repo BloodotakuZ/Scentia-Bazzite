@@ -19,17 +19,10 @@ modules:
         destination: /usr/local/bin/build-hyprland.sh
         mode: "0755"
 
-  # Add CUDA repository so rpm-ostree can resolve CUDA/cuDNN
-  - type: script
-    scripts:
-      - |
-        set -oue pipefail
-        echo "Adding NVIDIA CUDA repo..."
-        curl -fsSL "https://developer.download.nvidia.com/compute/cuda/repos/fedora39/x86_64/cuda-fedora39.repo" \
-          -o /etc/yum.repos.d/cuda.repo
-
   # Layer packages via rpm-ostree (official bluebuild module)
   - type: rpm-ostree
+    repos:
+      - https://developer.download.nvidia.com/compute/cuda/repos/fedora39/x86_64/cuda-fedora39.repo
     install:
       - git
       - curl
