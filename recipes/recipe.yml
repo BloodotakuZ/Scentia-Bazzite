@@ -15,12 +15,15 @@ modules:
     files:
       - source: lactd.service
         destination: /etc/systemd/system/lactd.service
+        mode: "0644"
 
       - source: environment
         destination: /etc/environment
+        mode: "0644"
 
       - source: build-hyprland.sh
         destination: /usr/local/bin/build-hyprland.sh
+        mode: "0755"   # make sure this script is executable in the image
 
   ##########################################################
   # ADD NVIDIA CUDA REPO (strict v0 syntax)
@@ -28,7 +31,9 @@ modules:
   - type: script
     scripts:
       - echo "Adding NVIDIA CUDA repo..."
-      - curl -L https://developer.download.nvidia.com/compute/cuda/repos/fedora39/x86_64/cuda-fedora39.repo -o /etc/yum.repos.d/cuda.repo
+      - >
+        curl -fsSL "https://developer.download.nvidia.com/compute/cuda/repos/fedora39/x86_64/cuda-fedora39.repo"
+        -o /etc/yum.repos.d/cuda.repo || { echo "Failed to download CUDA repo"; exit 1; }
 
   ##########################################################
   # DNF – install all packages including CUDA + cuDNN
@@ -74,11 +79,11 @@ modules:
         - slurp
         - swaylock
 
-        # Gaming stack
+        # Gaming stack (note lowercase for package names)
         - gamemode
         - mangohud
         - mangohud-core
-        - vkBasalt
+        - vkbasalt
         - vulkan-tools
         - vulkan-validation-layers
 
@@ -122,4 +127,6 @@ modules:
   ##########################################################
   # SIGNING
   ##########################################################
-  - type: signing
+  # The signing module usually needs configuration (gpg key, passphrase, etc).
+  # If you do not have signing configured yet, leave this out or add config below.
+  # - type: signing
