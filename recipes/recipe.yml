@@ -67,7 +67,7 @@ modules:
   # Build Hyprland from source after dependencies are present
   - type: script
     scripts:
-      - files/scripts/run-build-hyprland.sh
+      - scripts/run-build-hyprland.sh
 
   # Install Flatpaks using the default bluebuild module shape
   - type: default-flatpaks
