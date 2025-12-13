@@ -1,79 +1,63 @@
+---
 # yaml-language-server: $schema=https://schema.blue-build.org/recipe-v1.json
 
-name: scentia-os
-description: Hyprland + CUDA/cuDNN + gaming + dev tools
-base-image: ghcr.io/ublue-os/bazzite-nvidia
-image-version: latest
+name: bazzite-jakoolit-hyprland
+description: Bazzite DX NVIDIA + Hyprland (Jakoolit-style) + dev deps + Flatpaks (Heroic, LACT)
+base-image: ghcr.io/ublue-os/bazzite-dx-nvidia:stable
+image-version: stable
 
 modules:
-  # Copy config files and scripts into the image
-  - type: files
-    files:
-      - source: lactd.service
-        destination: /etc/systemd/system/lactd.service
-        mode: "0644"
-      - source: environment
-        destination: /etc/environment
-        mode: "0644"
-      - source: build-hyprland.sh
-        destination: /usr/local/bin/build-hyprland.sh
-        mode: "0755"
-
-  # Layer packages via rpm-ostree (official bluebuild module)
+  # Hyprland + essentials (from COPR)
   - type: rpm-ostree
     repos:
-      - https://developer.download.nvidia.com/compute/cuda/repos/fedora39/x86_64/cuda-fedora39.repo
+      # COPR repo pattern supports %OS_VERSION% substitution
+      - https://copr.fedorainfracloud.org/coprs/solopasha/hyprland/repo/fedora-%OS_VERSION%/solopasha-hyprland-fedora-%OS_VERSION%.repo
     install:
+      # Core Hyprland
+      - hyprland
+      - xdg-desktop-portal-hyprland
+
+      # Common Hyprland ecosystem bits (adjust as desired)
+      - waybar
+      - rofi-wayland
+      - kitty
+      - dunst
+      - wl-clipboard
+      - grim
+      - slurp
+      - swappy
+      - wlogout
+      - polkit-gnome
+      - network-manager-applet
+      - blueman
+      - pavucontrol
+      - playerctl
+      - brightnessctl
+
+      # Dev basics (Bazzite DX already helps, but these are safe defaults)
       - git
-      - curl
       - gcc
       - gcc-c++
-      - clang
-      - llvm
       - make
       - cmake
       - ninja-build
-      - meson
-      - pkg-config
+      - clang
+      - pkgconf-pkg-config
       - python3
       - python3-pip
-      - python3-mako
-      - wlroots-devel
-      - wayland-devel
-      - wayland-protocols-devel
-      - libxkbcommon-devel
-      - libinput-devel
-      - libseat-devel
-      - libevdev-devel
-      - libudev-devel
-      - libdrm-devel
-      - libxkbcommon-x11-devel
-      - waybar
-      - rofi-wayland
-      - grim
-      - slurp
-      - swaylock
-      - gamemode
-      - mangohud
-      - vulkan-tools
-      - vulkan-validation-layers
-      - cuda-toolkit-12-4
-      - cuda-libraries-12-4
-      - cuda-libraries-devel-12-4
-      - cuda-nvml-devel-12-4
-      - cuda-nvrtc-12-4
-      - cuda-cudart-devel-12-4
+      - python3-devel
+      - nodejs
+      - npm
 
-  # Build Hyprland from source after dependencies are present
-  - type: script
-    scripts:
-      - run-build-hyprland.sh
+  # Put helper scripts in /usr/bin
+  - type: files
 
-  # Install Flatpaks using the default bluebuild module shape
+  # Preinstall Flatpaks (Heroic + LACT)
   - type: default-flatpaks
-    system:
-      install:
-        - org.mozilla.firefox
-        - org.gnome.Loupe
-
-  # - type: signing
+    configurations:
+      - scope: system
+        repo:
+          title: Flathub (system)
+        install:
+          - com.heroicgameslauncher.hgl
+          - io.github.ilya_zlobintsev.LACT
